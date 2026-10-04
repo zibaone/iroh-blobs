@@ -515,7 +515,7 @@ impl Actor {
         debug!("creating or opening meta database at {}", db_path.display());
         // [diag #266] ablation : cache redb réduit (défaut = 1 GiB)
         let db = match redb::Database::builder()
-            .set_cache_size(8 * 1024 * 1024)
+            .set_cache_size(64 * 1024 * 1024)
             .create(db_path)
         {
             Ok(db) => db,
