@@ -513,7 +513,11 @@ impl Actor {
         options: BatchOptions,
     ) -> Result<Self, ActorError> {
         debug!("creating or opening meta database at {}", db_path.display());
-        let db = match redb::Database::create(db_path) {
+        // [diag #266] ablation : cache redb réduit (défaut = 1 GiB)
+        let db = match redb::Database::builder()
+            .set_cache_size(8 * 1024 * 1024)
+            .create(db_path)
+        {
             Ok(db) => db,
             Err(DatabaseError::UpgradeRequired(v)) => {
                 return Err(anyerr!(
