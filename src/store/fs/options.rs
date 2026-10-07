@@ -112,6 +112,10 @@ pub struct Options {
     pub batch: BatchOptions,
     /// Gc configuration.
     pub gc: Option<GcConfig>,
+    /// Cache size in bytes for the metadata redb database.
+    ///
+    /// `None` keeps the redb default (currently 1 GiB).
+    pub meta_cache_size: Option<usize>,
 }
 
 impl Options {
@@ -122,6 +126,7 @@ impl Options {
             inline: InlineOptions::default(),
             batch: BatchOptions::default(),
             gc: None,
+            meta_cache_size: None,
         }
     }
 
