@@ -657,7 +657,13 @@ impl Actor {
         fs::create_dir_all(db_path.parent().unwrap())?;
         let (db_send, db_recv) = tokio::sync::mpsc::channel(100);
         let (protect, ds) = delete_set::pair(Arc::new(options.path.clone()));
-        let db_actor = meta::Actor::new(db_path, db_recv, ds, options.batch.clone())?;
+        let db_actor = meta::Actor::new(
+            db_path,
+            options.meta_cache_size,
+            db_recv,
+            ds,
+            options.batch.clone(),
+        )?;
         let slot_context = Arc::new(TaskContext {
             options: options.clone(),
             db: meta::Db::new(db_send),
@@ -1569,6 +1575,29 @@ pub mod tests {
             store.import_bao_bytes(hash, ranges, bao).await?;
             task.await??;
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_meta_cache_size_default() {
+        let options = Options::new(Path::new("."));
+        assert_eq!(options.meta_cache_size, None);
+    }
+
+    /// Open a store with a custom cache size for the metadata redb database.
+    #[tokio::test]
+    async fn test_meta_cache_size() -> TestResult<()> {
+        let testdir = tempfile::tempdir()?;
+        let db_dir = testdir.path().join("db");
+        let mut options = Options::new(&db_dir);
+        options.meta_cache_size = Some(8 * 1024 * 1024);
+        let store = FsStore::load_with_opts(db_dir.join("blobs.db"), options).await?;
+        let expected = b"hello".to_vec();
+        let expected_hash = Hash::new(&expected);
+        let tt = store.add_bytes(expected.clone()).await?;
+        assert_eq!(expected_hash, tt.hash);
+        let actual = store.get_bytes(expected_hash).await?;
+        assert_eq!(&expected, &actual);
         Ok(())
     }
 

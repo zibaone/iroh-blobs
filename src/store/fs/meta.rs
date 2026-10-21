@@ -508,12 +508,19 @@ pub struct Actor {
 impl Actor {
     pub fn new(
         db_path: PathBuf,
+        meta_cache_size: Option<usize>,
         cmds: tokio::sync::mpsc::Receiver<Command>,
         mut ds: DeleteHandle,
         options: BatchOptions,
     ) -> Result<Self, ActorError> {
         debug!("creating or opening meta database at {}", db_path.display());
-        let db = match redb::Database::create(db_path) {
+        let db = match meta_cache_size {
+            Some(cache_size) => redb::Database::builder()
+                .set_cache_size(cache_size)
+                .create(db_path),
+            None => redb::Database::create(db_path),
+        };
+        let db = match db {
             Ok(db) => db,
             Err(DatabaseError::UpgradeRequired(v)) => {
                 return Err(anyerr!(
